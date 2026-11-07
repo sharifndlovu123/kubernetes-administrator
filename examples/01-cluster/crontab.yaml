@@ -1,0 +1,9 @@
+# Custom resource: needs the CRD from crd.yaml applied first (really applied, not --dry-run);
+# otherwise `kubectl apply --dry-run=server` fails with a no-matches-for-kind / resource-not-found error.
+apiVersion: "stable.example.com/v1"
+kind: CronTab
+metadata:
+  name: my-new-cron-object
+spec:
+  cronSpec: "* * * * */5"
+  image: my-awesome-cron-image

@@ -1,0 +1,59 @@
+# Inter-pod affinity / anti-affinity.
+# Source: https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/#inter-pod-affinity-and-anti-affinity
+# Deployment: spread replicas over nodes (hard anti-affinity against its own label).
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: spread-web
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: spread-web
+  template:
+    metadata:
+      labels:
+        app: spread-web
+    spec:
+      affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            - labelSelector:
+                matchExpressions:
+                  - key: app
+                    operator: In
+                    values: ["spread-web"]
+              topologyKey: kubernetes.io/hostname
+      containers:
+        - name: nginx
+          image: nginx:1.27
+---
+# Pod: must share a node with a Pod labelled app=spread-web (hard affinity),
+# and prefers not to share one with security=S2 (soft anti-affinity).
+apiVersion: v1
+kind: Pod
+metadata:
+  name: with-pod-affinity
+spec:
+  affinity:
+    podAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        - labelSelector:
+            matchExpressions:
+              - key: app
+                operator: In
+                values: ["spread-web"]
+          topologyKey: kubernetes.io/hostname
+    podAntiAffinity:
+      preferredDuringSchedulingIgnoredDuringExecution:
+        - weight: 100
+          podAffinityTerm:
+            labelSelector:
+              matchExpressions:
+                - key: security
+                  operator: In
+                  values: ["S2"]
+            topologyKey: kubernetes.io/hostname
+  containers:
+    - name: pause
+      image: registry.k8s.io/pause:3.8

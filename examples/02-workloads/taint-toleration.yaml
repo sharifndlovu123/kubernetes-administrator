@@ -1,0 +1,42 @@
+# Taint a node first:  kubectl taint nodes cka-study-worker dedicated=batch:NoSchedule
+# Remove it with:      kubectl taint nodes cka-study-worker dedicated=batch:NoSchedule-
+apiVersion: v1
+kind: Pod
+metadata:
+  name: tolerant
+spec:
+  tolerations:
+    - key: dedicated
+      operator: Equal
+      value: batch
+      effect: NoSchedule
+  # A toleration only PERMITS the node; pair with a selector to ATTRACT the pod.
+  nodeSelector:
+    disktype: ssd          # kubectl label nodes cka-study-worker disktype=ssd
+  containers:
+    - name: nginx
+      image: nginx:1.27
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: affinity-demo
+spec:
+  affinity:
+    nodeAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        nodeSelectorTerms:
+          - matchExpressions:
+              - key: disktype
+                operator: In
+                values: ["ssd"]
+      preferredDuringSchedulingIgnoredDuringExecution:
+        - weight: 1
+          preference:
+            matchExpressions:
+              - key: kubernetes.io/hostname
+                operator: NotIn
+                values: ["cka-study-worker2"]
+  containers:
+    - name: nginx
+      image: nginx:1.27

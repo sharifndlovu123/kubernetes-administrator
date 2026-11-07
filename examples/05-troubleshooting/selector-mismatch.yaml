@@ -1,0 +1,28 @@
+# Broken on purpose: the Service selects app=webb (typo) but the Pods are labelled app=web,
+# so the Service has no endpoints and connections are refused.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: web
+spec:
+  replicas: 2
+  selector:
+    matchLabels: {app: web}
+  template:
+    metadata:
+      labels: {app: web}
+    spec:
+      containers:
+        - name: nginx
+          image: nginx:1.27
+          ports: [{containerPort: 80}]
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: web
+spec:
+  selector: {app: webb}
+  ports:
+    - port: 80
+      targetPort: 80

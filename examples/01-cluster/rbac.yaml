@@ -1,0 +1,78 @@
+# Throwaway RBAC demo. Shapes follow https://kubernetes.io/docs/reference/access-authn-authz/rbac/
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: rbac-demo
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: build-robot
+  namespace: rbac-demo
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  namespace: rbac-demo
+  name: pod-reader
+rules:
+- apiGroups: [""] # "" indicates the core API group
+  resources: ["pods"]
+  verbs: ["get", "watch", "list"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: read-pods
+  namespace: rbac-demo
+subjects:
+- kind: User
+  name: jane # Name is case sensitive
+  apiGroup: rbac.authorization.k8s.io
+- kind: ServiceAccount
+  name: build-robot
+  namespace: rbac-demo
+roleRef:
+  kind: Role
+  name: pod-reader
+  apiGroup: rbac.authorization.k8s.io
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  # "namespace" omitted since ClusterRoles are not namespaced
+  name: rbac-demo-secret-reader
+rules:
+- apiGroups: [""]
+  resources: ["secrets"]
+  verbs: ["get", "watch", "list"]
+---
+# WARNING: teaching example only. This grants cluster-wide read of ALL Secrets to group `manager`.
+# Do not apply to a shared or production cluster; prefer the namespaced RoleBinding below.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: rbac-demo-read-secrets-global
+subjects:
+- kind: Group
+  name: manager # Name is case sensitive
+  apiGroup: rbac.authorization.k8s.io
+roleRef:
+  kind: ClusterRole
+  name: rbac-demo-secret-reader
+  apiGroup: rbac.authorization.k8s.io
+---
+# Namespaced alternative: a RoleBinding may reference a ClusterRole; the grant is limited to this namespace.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: read-secrets
+  namespace: rbac-demo
+subjects:
+- kind: Group
+  name: manager
+  apiGroup: rbac.authorization.k8s.io
+roleRef:
+  kind: ClusterRole
+  name: rbac-demo-secret-reader
+  apiGroup: rbac.authorization.k8s.io

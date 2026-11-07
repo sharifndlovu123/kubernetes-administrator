@@ -1,0 +1,11 @@
+# Broken on purpose: the process prints a line and exits 1 -> CrashLoopBackOff.
+# kubectl logs crashloop --previous shows the output of the last run.
+apiVersion: v1
+kind: Pod
+metadata:
+  name: crashloop
+spec:
+  containers:
+    - name: app
+      image: busybox:1.36
+      command: [/bin/sh, -c, 'echo "config file /etc/app.conf not found" >&2; exit 1']

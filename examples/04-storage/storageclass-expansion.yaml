@@ -1,0 +1,22 @@
+# StorageClass with allowVolumeExpansion, and a PVC to grow by editing its request.
+# Source: https://kubernetes.io/docs/concepts/storage/persistent-volumes/#expanding-persistent-volumes-claims
+# Expansion only works if the provisioner / CSI driver supports it.
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: local-expandable
+provisioner: rancher.io/local-path   # kind's provisioner; swap for a CSI driver that supports expansion
+allowVolumeExpansion: true
+volumeBindingMode: WaitForFirstConsumer
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: expand-pvc
+spec:
+  storageClassName: local-expandable
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi

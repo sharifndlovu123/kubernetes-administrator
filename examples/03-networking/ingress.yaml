@@ -1,0 +1,22 @@
+# Needs an Ingress controller (e.g. ingress-nginx) and a matching IngressClass.
+# The API object is accepted without one, but nothing serves traffic.
+# Assumes the demo-deploy Service from clusterip.yaml.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: demo-ingress
+spec:
+  ingressClassName: nginx         # must name an existing IngressClass
+  rules:
+    - host: demo.example.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix      # Prefix | Exact | ImplementationSpecific
+            backend:
+              service:
+                name: demo-deploy
+                port:
+                  number: 80
+# TLS would add: spec.tls: [{hosts: [demo.example.com], secretName: demo-tls}]
+# where demo-tls is a kubernetes.io/tls Secret.

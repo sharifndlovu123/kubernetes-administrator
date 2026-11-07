@@ -1,0 +1,6 @@
+.venv/
+.superpowers/
+__pycache__/
+*.kubeconfig
+.bin/
+source/

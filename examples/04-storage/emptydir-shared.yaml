@@ -1,0 +1,20 @@
+# One emptyDir shared by two containers (can be mounted at different paths).
+apiVersion: v1
+kind: Pod
+metadata:
+  name: emptydir-shared
+spec:
+  containers:
+    - name: writer
+      image: busybox
+      command: ["sh", "-c", "echo shared > /out/msg && sleep 3600"]
+      volumeMounts:
+        - {name: scratch, mountPath: /out}
+    - name: reader
+      image: busybox
+      command: ["sleep", "3600"]
+      volumeMounts:
+        - {name: scratch, mountPath: /in}
+  volumes:
+    - name: scratch
+      emptyDir: {}

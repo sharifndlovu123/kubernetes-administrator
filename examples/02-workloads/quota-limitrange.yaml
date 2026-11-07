@@ -1,0 +1,26 @@
+# Apply into a namespace you create:  kubectl create ns demo && kubectl apply -n demo -f quota-limitrange.yaml
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: demo-quota
+spec:
+  hard:
+    requests.cpu: "1"
+    requests.memory: 1Gi
+    limits.cpu: "2"
+    limits.memory: 2Gi
+    pods: "10"
+---
+apiVersion: v1
+kind: LimitRange
+metadata:
+  name: demo-defaults
+spec:
+  limits:
+    - type: Container
+      defaultRequest:
+        cpu: 100m
+        memory: 64Mi
+      default:
+        cpu: 200m
+        memory: 128Mi

@@ -1,0 +1,11 @@
+resources:
+- ../../base
+namePrefix: dev-
+labels:
+  - pairs:
+      app: my-nginx
+    includeSelectors: true
+images:
+- name: nginx
+  newName: my.image.registry/nginx
+  newTag: "1.4.0"

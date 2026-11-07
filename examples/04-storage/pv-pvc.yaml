@@ -1,0 +1,27 @@
+# Static provisioning: a hand-made PV and a PVC that binds to it.
+# hostPath is for single-node/lab use only (data lives on one node's disk).
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: nginx-pv
+spec:
+  storageClassName: manual          # a label here; no StorageClass object is required for static binding
+  capacity:
+    storage: 3Gi
+  accessModes:
+    - ReadWriteOnce
+  persistentVolumeReclaimPolicy: Retain
+  hostPath:
+    path: /mnt/data
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: nginx-pvc
+spec:
+  storageClassName: manual          # must match the PV
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 3Gi                  # PV capacity must be >= this

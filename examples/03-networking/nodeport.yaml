@@ -1,0 +1,13 @@
+# Assumes the demo-deploy Deployment from clusterip.yaml.
+apiVersion: v1
+kind: Service
+metadata:
+  name: demo-deploy-nodeport
+spec:
+  type: NodePort
+  selector:
+    app: demo-deploy
+  ports:
+    - port: 80
+      targetPort: http
+      nodePort: 30080             # optional; default range 30000-32767, omit to auto-assign
