@@ -1,0 +1,18 @@
+# Assumes nginx-pvc from pv-pvc.yaml. Pinned to one node so the hostPath data location is known.
+apiVersion: v1
+kind: Pod
+metadata:
+  name: nginx-storage
+spec:
+  nodeSelector:
+    kubernetes.io/hostname: cka-study-worker   # kind worker node name; change for your cluster
+  containers:
+    - name: nginx
+      image: nginx
+      volumeMounts:
+        - name: nginx-pv-storage               # 2) mount the volume in the container
+          mountPath: /data
+  volumes:
+    - name: nginx-pv-storage                   # 1) add the PVC to the Pod as a volume
+      persistentVolumeClaim:
+        claimName: nginx-pvc
