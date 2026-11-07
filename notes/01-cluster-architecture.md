@@ -221,6 +221,7 @@ kubeadm token list
 kubectl taint nodes --all node-role.kubernetes.io/control-plane-
 ```
 
+- Config API reference: https://kubernetes.io/docs/reference/config-api/kubeadm-config.v1beta4/ documents `networking.podSubnet` ("the subnet used by Pods"), `serviceSubnet` (default `10.96.0.0/12`), `controlPlaneEndpoint` (stable IP or DNS name for the control plane; with several control plane instances, the address of the external load balancer) and `kubernetesVersion` (target control plane version).
 - Live check: `kubeadm config validate --config /dev/stdin` on the kind control plane node accepted `examples/01-cluster/kubeadm-config.yaml` (output `ok`); `kubeadm config print init-defaults` there showed `apiVersion: kubeadm.k8s.io/v1beta4`, `certificatesDir: /etc/kubernetes/pki`, `etcd.local.dataDir: /var/lib/etcd`.
 
 ## Upgrade a kubeadm cluster
@@ -615,7 +616,7 @@ kubectl get crontab
 
 ## Helm and Kustomize
 <!-- gap -->
-docs: https://kubernetes.io/docs/tasks/manage-kubernetes-objects/kustomization/ | Helm (not documented on kubernetes.io): https://helm.sh/docs/intro/using_helm/ and https://helm.sh/docs/helm/helm_install/
+docs: Kustomize https://kubernetes.io/docs/tasks/manage-kubernetes-objects/kustomization/ | Helm (no kubernetes.io page; helm.sh docs): https://helm.sh/docs/intro/using_helm/ , https://helm.sh/docs/helm/helm_install/ , https://helm.sh/docs/helm/helm_upgrade/ , https://helm.sh/docs/helm/helm_uninstall/ , https://helm.sh/docs/helm/helm_show_values/ , https://helm.sh/docs/helm/helm_search_repo/
 
 Kustomize is built into `kubectl`. Example: [`examples/01-cluster/kustomize/`](../examples/01-cluster/kustomize/) (a `base` and a `dev` overlay).
 
@@ -650,17 +651,18 @@ Helm (commands from the Helm docs; no Helm binary was installed or run here):
 ```bash
 helm repo add [NAME] [URL]
 helm repo update
-helm search repo                                      # searches repos you added locally
-helm show values                                      # a chart's configurable options
+helm search repo [keyword]                            # searches repos you added locally
+helm show values [CHART]                              # a chart's values.yaml
 helm install [NAME] [CHART] [flags]
 helm install -f myvalues.yaml myredis ./redis         # values file (-f / --values)
 helm install --set name=prod myredis ./redis          # override on the command line
 helm install ... --namespace <ns> --create-namespace  # create the release namespace if absent
 helm install ... --version <constraint> --dry-run=server
 helm list --deployed
-helm upgrade                                          # update an existing release
+helm upgrade [RELEASE] [CHART] [flags]                # update an existing release
+helm upgrade -f myvalues.yaml -f override.yaml redis ./redis
 helm rollback [RELEASE] [REVISION]
-helm uninstall                                        # remove a release
+helm uninstall RELEASE_NAME [...] [flags]             # remove a release
 ```
 
 ## Gotchas
@@ -677,7 +679,8 @@ Sources: the sections above; reference https://kubernetes.io/docs/home/.
 - Restoring etcd with API servers running is wrong: stop them first.
 - Renewed certificates are not picked up until the control plane static Pods restart; `kubectl delete pod` does not restart a static Pod.
 - RBAC has no deny rules; a RoleBinding to a ClusterRole is still limited to the binding's namespace; `roleRef` is immutable.
+- A ClusterRoleBinding grants its ClusterRole across every namespace; binding the same ClusterRole with a RoleBinding scopes it to that one namespace (`examples/01-cluster/rbac.yaml` has both for Secrets). Reading Secrets is sensitive: prefer `get` on named `resourceNames` over `list`/`watch`. Source: https://kubernetes.io/docs/reference/access-authn-authz/rbac/
 - `kubectl auth can-i --as=...` needs impersonation rights; ServiceAccount users are `system:serviceaccount:<ns>:<name>`.
 - Wrong `metadata.name` on a CRD (must be `<plural>.<group>`) is rejected; exactly one version has `storage: true`.
-- Helm has no kubernetes.io page; the Helm commands above are cited from helm.sh.
+- Helm has no kubernetes.io page; the Helm commands above are cited from helm.sh pages.
 - Dropped as out of scope for the CKA v1.37 curriculum (Cluster Architecture, Installation & Configuration): `kubeadm reset`, external CA mode and custom certificate authority setup, Windows nodes, API aggregation layer, and writing operators with kubebuilder or Operator Framework.

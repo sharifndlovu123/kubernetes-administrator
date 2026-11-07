@@ -30,6 +30,14 @@ class CheckTests(unittest.TestCase):
         self.assertEqual(check.check_source_tags(p), [])
         self.assertEqual(check.check_timestamps(p), [])
 
+    def test_helm_url_only_section_passes(self):
+        p = write("## Helm\nhttps://helm.sh/docs/intro/using_helm/\n")
+        self.assertEqual(check.check_source_tags(p), [])
+
+    def test_unrelated_domain_section_fails(self):
+        p = write("## Helm\nhttps://example.com/docs/\n")
+        self.assertTrue(check.check_source_tags(p))
+
     def test_timestamp_outside_declared_chapter_fails(self):
         p = write(
             "## Probes\n<!-- chapter: Probes -->\n"

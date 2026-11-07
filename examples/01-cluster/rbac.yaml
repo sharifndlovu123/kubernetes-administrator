@@ -47,6 +47,8 @@ rules:
   resources: ["secrets"]
   verbs: ["get", "watch", "list"]
 ---
+# WARNING: teaching example only. This grants cluster-wide read of ALL Secrets to group `manager`.
+# Do not apply to a shared or production cluster; prefer the namespaced RoleBinding below.
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
@@ -54,6 +56,21 @@ metadata:
 subjects:
 - kind: Group
   name: manager # Name is case sensitive
+  apiGroup: rbac.authorization.k8s.io
+roleRef:
+  kind: ClusterRole
+  name: rbac-demo-secret-reader
+  apiGroup: rbac.authorization.k8s.io
+---
+# Namespaced alternative: a RoleBinding may reference a ClusterRole; the grant is limited to this namespace.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: read-secrets
+  namespace: rbac-demo
+subjects:
+- kind: Group
+  name: manager
   apiGroup: rbac.authorization.k8s.io
 roleRef:
   kind: ClusterRole
