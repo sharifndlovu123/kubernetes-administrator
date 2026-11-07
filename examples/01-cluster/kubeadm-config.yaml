@@ -1,0 +1,19 @@
+# Used as: kubeadm init --config kubeadm-config.yaml   (NOT run live; checked with `kubeadm config validate`)
+# Field names confirmed against `kubeadm config print init-defaults` (v1beta4) and
+# https://kubernetes.io/docs/setup/production-environment/tools/kubeadm/create-cluster-kubeadm/
+apiVersion: kubeadm.k8s.io/v1beta4
+kind: InitConfiguration
+nodeRegistration:
+  criSocket: unix:///run/containerd/containerd.sock
+---
+apiVersion: kubeadm.k8s.io/v1beta4
+kind: ClusterConfiguration
+kubernetesVersion: 1.37.0
+controlPlaneEndpoint: "cluster-endpoint:6443"
+networking:
+  podSubnet: 10.244.0.0/16
+  serviceSubnet: 10.96.0.0/12
+---
+apiVersion: kubelet.config.k8s.io/v1beta1
+kind: KubeletConfiguration
+cgroupDriver: systemd
