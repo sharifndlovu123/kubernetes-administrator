@@ -26,8 +26,10 @@ CHAPTERS: dict[str, tuple[int, int]] = {
 }
 SKIPPED_CHAPTERS = {"Continued Training"}
 
-DENYLIST = ["cube control", "cube ctl", "etc D", "cubelet", "cube adm",
+DENYLIST = ["cube control", "cube ctl", "cubelet", "cube adm",
             "cube proxy", "cube DNS"]
+# Case-sensitive, word-bounded: plain prose "etc d..." must not match.
+DENYLIST_CASE_SENSITIVE = [("etc D", re.compile(r"\betc D(?![A-Za-z])"))]
 MERMAID_TYPES = ("graph", "flowchart", "sequenceDiagram", "classDiagram",
                  "stateDiagram", "erDiagram", "gantt", "journey", "pie",
                  "mindmap", "timeline", "gitGraph")
@@ -127,6 +129,9 @@ def check_denylist(path):
         low = line.lower()
         for term in DENYLIST:
             if term.lower() in low:
+                errs.append(f"{path}:{n}: caption mis-hearing '{term}'")
+        for term, rx in DENYLIST_CASE_SENSITIVE:
+            if rx.search(line):
                 errs.append(f"{path}:{n}: caption mis-hearing '{term}'")
     return errs
 

@@ -61,6 +61,13 @@ class CheckTests(unittest.TestCase):
         p = write("Run kubectl get pods; kubelet; etcd\n")
         self.assertEqual(check.check_denylist(p), [])
 
+    def test_denylist_etc_d_case_and_word_bounds(self):
+        self.assertEqual(check.check_denylist(write("pods, services, etc deploy later\n")), [])
+        self.assertEqual(check.check_denylist(write("and so on, etc debug\n")), [])
+        self.assertTrue(check.check_denylist(write("backup etc D snapshot\n")))
+        self.assertTrue(check.check_denylist(write("backup etc D\n")))
+        self.assertEqual(check.check_denylist(write("etc Deployment\n")), [])
+
     def test_chapter_ranges(self):
         self.assertEqual(check.CHAPTERS["Architecture"], (102, 1262))
         self.assertEqual(check.CHAPTERS["Continued Training"], (9914, 10207))

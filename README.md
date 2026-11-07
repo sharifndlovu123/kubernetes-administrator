@@ -18,10 +18,11 @@ Commands and manifests first; no conceptual padding.
 
 ## Notes by domain (exam weight order)
 
+0. [Exam overview](notes/00-exam-overview.md)
 1. [Troubleshooting](notes/05-troubleshooting.md) (30%)
-2. [Cluster architecture, installation and configuration](notes/01-architecture.md) (25%)
-3. [Services and networking](notes/03-services-and-networking.md) (20%)
-4. [Workloads and scheduling](notes/02-workloads-and-scheduling.md) (15%)
+2. [Cluster architecture, installation and configuration](notes/01-cluster-architecture.md) (25%)
+3. [Services and networking](notes/03-services-networking.md) (20%)
+4. [Workloads and scheduling](notes/02-workloads-scheduling.md) (15%)
 5. [Storage](notes/04-storage.md) (10%)
 
 ## Credit
