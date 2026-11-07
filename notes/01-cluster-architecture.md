@@ -362,7 +362,7 @@ kubectl -n kube-system delete pod <name-of-etcd-pod>
 systemctl restart kubelet.service
 ```
 
-  The `kubectl delete pod` form only deletes the API-side mirror Pod, and the kubelet does not remove the static Pod for it (static-pod page, "Mirror Pods"). What recreates etcd is the kubelet reacting to the manifest directory, which it scans periodically for changes (https://kubernetes.io/docs/tasks/configure-pod-container/static-pod/). So after editing `etcd.yaml` treat `systemctl restart kubelet.service` as the form to rely on.
+  Docs: the kubelet periodically scans the static Pod directory and adds or removes Pods as files appear or disappear (https://kubernetes.io/docs/tasks/configure-pod-container/static-pod/), and the etcd page offers restarting the kubelet and/or deleting the mirror Pod ("either or both"). The static-pod page also shows that `kubectl delete pod` on a mirror Pod does not remove the static Pod. Study tip (not a docs claim): after editing `etcd.yaml`, restarting the kubelet does not depend on the mirror Pod.
 
 - On a kubeadm cluster also set `etcd.local.dataDir` to the new directory in the `kubeadm-config` ConfigMap, otherwise the next `kubeadm upgrade` writes an etcd manifest for the old directory.
 - `etcdctl` is the network client for day-to-day operations; `etcdutl` works directly on data files (restore, defrag, status). Restore uses `etcdutl`; the `etcdctl` restore is the deprecated form.

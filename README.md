@@ -14,7 +14,7 @@ Commands and manifests first; no conceptual padding.
 | [`notes/video-map.md`](notes/video-map.md) | Video chapter to note file map, with timestamp links |
 | [`examples/`](examples/) | Manifests validated with `kubectl apply --dry-run=server` on a kind cluster |
 | `source/` | Local only, git-ignored and not published: the video's auto-captions and per-chapter splits (see Credit for how to regenerate) |
-| [`scripts/`](scripts/) | `split_chapters.py` and the `check.py` checker |
+| [`scripts/`](scripts/) | `captions_to_transcript.py`, `split_chapters.py` and the `check.py` checker |
 
 ## Notes by domain (exam weight order)
 
@@ -27,7 +27,7 @@ Commands and manifests first; no conceptual padding.
 
 ## Credit
 
-The video-derived notes come from the Alta3 Research course [Kubernetes Zero to Hero](https://www.youtube.com/watch?v=MTHGoGUFpvE) (about 2h50m). Everything is paraphrased in my own words; none of it is a copy of their material. The video's auto-captions are kept locally in `source/` only (git-ignored; not published and not part of this repo). To regenerate them: `.venv/bin/yt-dlp --skip-download --write-auto-subs --sub-langs en-orig --sub-format json3 -o source/transcript https://www.youtube.com/watch?v=MTHGoGUFpvE`, render the json3 as `[MM:SS] text` lines in `source/transcript.txt` (that conversion step is not scripted in this repo), then run `.venv/bin/python scripts/split_chapters.py` to write `source/chapters/NN-<slug>.txt`. `scripts/check.py` and its tests do not need `source/`. Topics the video does not cover are written from the official docs at [kubernetes.io](https://kubernetes.io/docs/) and cited there.
+The video-derived notes come from the Alta3 Research course [Kubernetes Zero to Hero](https://www.youtube.com/watch?v=MTHGoGUFpvE) (about 2h50m). Everything is paraphrased in my own words; none of it is a copy of their material. The video's auto-captions are kept locally in `source/` only (git-ignored; not published and not part of this repo). To regenerate them, from the repo root: (1) `.venv/bin/yt-dlp --skip-download --write-auto-subs --sub-langs en-orig --sub-format json3 -o source/transcript https://www.youtube.com/watch?v=MTHGoGUFpvE` (writes `source/transcript.en-orig.json3`), (2) `.venv/bin/python scripts/captions_to_transcript.py` (writes `source/transcript.txt` as `[MM:SS] text` lines), (3) `.venv/bin/python scripts/split_chapters.py` (writes `source/chapters/NN-<slug>.txt`). Neither script takes arguments. `scripts/check.py` and its tests do not need `source/`. Topics the video does not cover are written from the official docs at [kubernetes.io](https://kubernetes.io/docs/) and cited there.
 
 ## Conventions
 
