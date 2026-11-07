@@ -10,7 +10,7 @@ Commands and manifests first; no conceptual padding.
 | Path | Purpose |
 |------|---------|
 | [`cheatsheet.md`](cheatsheet.md) | One-page quick reference: kubectl commands, manifests, gotchas |
-| [`notes/`](notes/) | Study notes, one file per CKA domain |
+| [`notes/`](notes/) | Study notes, one file per CKA domain, plus the exam overview |
 | [`notes/video-map.md`](notes/video-map.md) | Video chapter to note file map, with timestamp links |
 | [`examples/`](examples/) | Manifests validated with `kubectl apply --dry-run=server` on a kind cluster |
 | [`source/`](source/) | Raw transcript and per-chapter splits (`source/chapters/`) |

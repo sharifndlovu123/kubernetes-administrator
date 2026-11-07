@@ -38,7 +38,9 @@ VIDEO_LINK = re.compile(
     r"\[video (\d+):(\d{2})\]\(https://www\.youtube\.com/watch\?v="
     + VIDEO_ID + r"&t=(\d+)s\)")
 ANY_YT_T = re.compile(r"youtube\.com/watch\?v=[^\s)]*&t=(\d+)s")
-DOCS_URL = re.compile(r"https://(?:kubernetes\.io|helm\.sh)/\S+")
+DOCS_URL = re.compile(
+    r"https://(?:kubernetes\.io|helm\.sh|training\.linuxfoundation\.org"
+    r"|docs\.linuxfoundation\.org|github\.com/cncf/curriculum)/\S+")
 CHAPTER_TAG = re.compile(r"<!--\s*chapter:\s*(.+?)\s*-->")
 
 

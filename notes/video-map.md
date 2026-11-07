@@ -1,6 +1,6 @@
 # Video map
 
-Chapter-to-note mapping for the Alta3 video ([watch](https://www.youtube.com/watch?v=MTHGoGUFpvE)). Note files are written in later tasks.
+Chapter-to-note mapping for the Alta3 video ([watch](https://www.youtube.com/watch?v=MTHGoGUFpvE)). 24 chapters map to notes; Continued Training (promo) is skipped.
 
 | Chapter | Start | Note file |
 |---|---|---|
