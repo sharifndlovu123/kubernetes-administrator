@@ -1,0 +1,9 @@
+# Broken on purpose: the tag does not exist -> ErrImagePull, then ImagePullBackOff.
+apiVersion: v1
+kind: Pod
+metadata:
+  name: bad-image
+spec:
+  containers:
+    - name: web
+      image: nginx:1.27-this-tag-does-not-exist

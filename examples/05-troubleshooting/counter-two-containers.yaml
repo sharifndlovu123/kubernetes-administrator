@@ -1,0 +1,14 @@
+# Two containers in one Pod, printing at different rates (logs demo).
+# Try: kubectl logs counter ; kubectl logs counter -c count-by-three -f ; kubectl logs counter --all-containers --prefix
+apiVersion: v1
+kind: Pod
+metadata:
+  name: counter
+spec:
+  containers:
+    - name: count
+      image: busybox:1.36
+      args: [/bin/sh, -c, 'i=0; while true; do echo "$i: $(date)"; i=$((i+1)); sleep 1; done']
+    - name: count-by-three
+      image: busybox:1.36
+      args: [/bin/sh, -c, 'i=0; while true; do echo "$i: $(date)"; i=$((i+1)); sleep 3; done']

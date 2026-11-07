@@ -1,0 +1,20 @@
+# Broken on purpose: the liveness probe path returns 404, so the kubelet keeps restarting the
+# container (events: "Liveness probe failed: HTTP probe failed with statuscode: 404").
+# The readiness probe fails too, so the Pod never becomes Ready (0/1).
+apiVersion: v1
+kind: Pod
+metadata:
+  name: failing-probe
+spec:
+  containers:
+    - name: web
+      image: nginx:1.27
+      ports: [{containerPort: 80}]
+      livenessProbe:
+        httpGet: {path: /healthz, port: 80}
+        initialDelaySeconds: 2
+        periodSeconds: 3
+        failureThreshold: 2
+      readinessProbe:
+        httpGet: {path: /ready, port: 80}
+        periodSeconds: 3

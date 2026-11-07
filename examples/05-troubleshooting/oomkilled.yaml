@@ -1,0 +1,13 @@
+# Broken on purpose: the shell builds a ~200 MB string under a 64Mi limit -> OOMKilled (exit 137).
+apiVersion: v1
+kind: Pod
+metadata:
+  name: oom
+spec:
+  containers:
+    - name: hog
+      image: busybox:1.36
+      command: [/bin/sh, -c, 'x=$(head -c 200000000 /dev/zero | tr "\0" a); echo done; sleep 3600']
+      resources:
+        requests: {memory: 32Mi}
+        limits: {memory: 64Mi}
