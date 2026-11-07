@@ -334,7 +334,7 @@ flowchart TD
 - Changing the pod template makes the Deployment create a new ReplicaSet and shift pods over gradually (rolling update, the default). Detail in the next section.
 
 ## Rollout, rolling update and rollback
-<!-- gap -->
+<!-- chapter: Deployments -->
 Docs: https://kubernetes.io/docs/concepts/workloads/controllers/deployment/ and video context [video 96:01](https://www.youtube.com/watch?v=MTHGoGUFpvE&t=5761s)
 
 ```bash
