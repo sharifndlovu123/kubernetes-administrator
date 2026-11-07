@@ -1,0 +1,30 @@
+# NOTE: only enforced if the CNI implements NetworkPolicy (see notes/03 Gotchas).
+# 1. Deny all ingress to every Pod in the namespace.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: default-deny-ingress
+spec:
+  podSelector: {}                 # empty selector = all Pods in this namespace
+  policyTypes:
+    - Ingress                     # no ingress rules listed = nothing allowed in
+---
+# 2. Allow only Pods labelled run=client to reach the demo-deploy Pods on 80.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-client-to-demo
+spec:
+  podSelector:
+    matchLabels:
+      app: demo-deploy
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              run: client
+      ports:
+        - protocol: TCP
+          port: 80
