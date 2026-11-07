@@ -11,7 +11,7 @@ alias k=kubectl
 complete -o default -F __start_kubectl k
 kubectl config get-contexts
 kubectl config use-context my-cluster-name
-kubectl config set-context --current --namespace=ggckad-s2   # change default namespace
+kubectl config set-context --current --namespace=my-namespace   # change default namespace
 ```
 
 ## Imperative kubectl
@@ -55,6 +55,8 @@ kubectl create job manual-run --from=cronjob/hello
 kubectl autoscale deployment web --min=2 --max=6 --cpu=50%
 kubectl create quota q --hard=requests.cpu=1,limits.cpu=2,pods=10 -n demo --dry-run=client -o yaml
 ```
+
+Flag references: [kubectl autoscale](https://kubernetes.io/docs/reference/kubectl/generated/kubectl_autoscale/) (`--cpu=80%`), [kubectl create quota](https://kubernetes.io/docs/reference/kubectl/generated/kubectl_create/kubectl_create_quota/) (`--hard=cpu=1,memory=1G,pods=2`), [kubectl create ingress](https://kubernetes.io/docs/reference/kubectl/generated/kubectl_create/kubectl_create_ingress/) (`--class=... --rule="host/path=svc:port"`).
 
 ## Rollouts, scheduling
 → [notes/02-workloads-scheduling.md#rollout-rolling-update-and-rollback](notes/02-workloads-scheduling.md#rollout-rolling-update-and-rollback), [#taints-and-tolerations](notes/02-workloads-scheduling.md#taints-and-tolerations), [#nodeselector-node-affinity-and-nodename](notes/02-workloads-scheduling.md#nodeselector-node-affinity-and-nodename)
@@ -128,7 +130,7 @@ kubeadm certs check-expiration            # read-only
 kubeadm certs renew all
 ```
 
-Upgrade, first control plane node (x = latest patch; skip one minor at a time is unsupported):
+Upgrade, first control plane node (x = latest patch; the docs say skipping minor versions is unsupported, so go 1.36.x to 1.37.x, or 1.37.x to 1.37.y):
 
 ```bash
 sudo apt-mark unhold kubeadm && sudo apt-get update && sudo apt-get install -y kubeadm='1.37.x-*' && sudo apt-mark hold kubeadm

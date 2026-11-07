@@ -34,6 +34,19 @@ class CheckTests(unittest.TestCase):
         p = write("## Helm\nhttps://helm.sh/docs/intro/using_helm/\n")
         self.assertEqual(check.check_source_tags(p), [])
 
+    def test_lf_and_cncf_urls_pass(self):
+        for u in ("https://training.linuxfoundation.org/certification/x/",
+                  "https://docs.linuxfoundation.org/tc-docs/certification/x",
+                  "https://github.com/cncf/curriculum/blob/main/x.pdf"):
+            p = write(f"## S\n{u}\n")
+            self.assertEqual(check.check_source_tags(p), [], u)
+
+    def test_lookalike_urls_fail(self):
+        for u in ("https://training.linuxfoundation.org.evil.com/x",
+                  "https://github.com/someone-else/curriculum/x"):
+            p = write(f"## S\n{u}\n")
+            self.assertTrue(check.check_source_tags(p), u)
+
     def test_unrelated_domain_section_fails(self):
         p = write("## Helm\nhttps://example.com/docs/\n")
         self.assertTrue(check.check_source_tags(p))

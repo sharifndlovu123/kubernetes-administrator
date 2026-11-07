@@ -12,7 +12,7 @@ docs: https://training.linuxfoundation.org/certification/certified-kubernetes-ad
 - Proctoring: remote, via streaming audio, video and screen sharing, on PSI's platform with the PSI Secure Browser.
 - Results: a score report is emailed within 24 hours of finishing (barring technical difficulties).
 - Retake: one retake is included with the purchase (the FAQ says a retake is offered "when eligible" to those who do not pass).
-- Validity: 2 years; you have 12 months from purchase to schedule and take the exam.
+- Validity: 2 years (LF CKA page). The scheduling window is not stated on the pages cited here, so it is left out.
 
 ## Domains and weights
 docs: https://training.linuxfoundation.org/certification/certified-kubernetes-administrator-cka/ | https://github.com/cncf/curriculum/blob/main/CKA_Curriculum_v1.37.pdf

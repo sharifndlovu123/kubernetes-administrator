@@ -576,7 +576,7 @@ docs: https://kubernetes.io/docs/concepts/extend-kubernetes/compute-storage-net/
 <!-- gap -->
 docs: https://kubernetes.io/docs/tasks/extend-kubernetes/custom-resources/custom-resource-definitions/ | https://kubernetes.io/docs/concepts/extend-kubernetes/operator/ | https://kubernetes.io/docs/concepts/extend-kubernetes/api-extension/custom-resources/
 
-Manifests: [`examples/01-cluster/crd.yaml`](../examples/01-cluster/crd.yaml), [`examples/01-cluster/crontab.yaml`](../examples/01-cluster/crontab.yaml).
+Manifests: [`examples/01-cluster/crd.yaml`](../examples/01-cluster/crd.yaml), [`examples/01-cluster/crontab.yaml`](../examples/01-cluster/crontab.yaml). Caveat: `crontab.yaml` is a custom resource, so `crd.yaml` must be applied for real first; `kubectl apply --dry-run=server` on it alone fails with a no-matches-for-kind error.
 
 ```yaml
 apiVersion: apiextensions.k8s.io/v1
@@ -605,7 +605,7 @@ spec:
 
 ```bash
 kubectl apply -f examples/01-cluster/crd.yaml
-kubectl apply -f examples/01-cluster/crontab.yaml
+kubectl apply -f examples/01-cluster/crontab.yaml   # needs crd.yaml applied first (not --dry-run), else no-matches-for-kind
 kubectl get crontab
 ```
 
