@@ -250,7 +250,7 @@ kind: Secret
 metadata:
   name: db-creds
 type: kubernetes.io/basic-auth      # requires keys username and password
-stringData:                         # write plain text; stored base64-encoded
+stringData:                         # write plain text; merged into data, which holds base64 strings
   username: admin
   password: s3cret
 ```
@@ -263,7 +263,7 @@ kubectl get secret db-creds -o jsonpath='{.data.password}' | base64 -d   # trivi
 - Created and used like ConfigMaps: env var via `secretKeyRef`, or a volume with `secret.secretName`.
 - Built-in types include `Opaque` (default, arbitrary data), `kubernetes.io/basic-auth`, `kubernetes.io/ssh-auth`, `kubernetes.io/tls`, `kubernetes.io/dockerconfigjson`.
 - Secrets are namespaced: the pod and the Secret must be in the same namespace.
-- Not encrypted by default. Values are only base64-encoded in etcd, and anyone with API access to the Secret can read them. Turn on encryption at rest and restrict access with RBAC.
+- Not encrypted by default: the docs say Secrets are stored unencrypted in etcd, and anyone with API access (or etcd access) can read them. `data` values are base64 strings because that is the API's encoding, which obscures them but is not secret. Turn on encryption at rest and restrict access with RBAC (source: https://kubernetes.io/docs/concepts/configuration/secret/).
 
 ## Labels and selectors
 <!-- chapter: Labels -->
@@ -277,12 +277,11 @@ kubectl label pod demo-pod awesome=training --overwrite
 kubectl label pod demo-pod awesome-                   # trailing minus removes it
 kubectl get pods -L awesome                           # label value as a column
 kubectl get pods -l awesome=training                  # filter with a selector
-kubectl logs -f counter --since=10s                   # (logs flags: -f follow, --since)
 ```
 
 - Labels are arbitrary key=value pairs on any object, from pods to nodes. They are how Kubernetes groups things: Deployments, Services and NetworkPolicies find their pods by selector.
 - Labels can also be edited in the manifest and re-applied.
-- Pod logs live on the node under `/var/log/pods` and are removed shortly after the pod is deleted (the kubelet cleans up about a minute later); ship logs elsewhere if you need history.
+- Pod logs live on the node under `/var/log/pods` and go away with the pod; ship logs elsewhere if you need history.
 
 ## Deployments and ReplicaSets
 <!-- chapter: Deployments -->
@@ -335,10 +334,11 @@ flowchart TD
 - Changing the pod template makes the Deployment create a new ReplicaSet and shift pods over gradually (rolling update, the default). Detail in the next section.
 
 ## Rollout, rolling update and rollback
+<!-- gap -->
 Docs: https://kubernetes.io/docs/concepts/workloads/controllers/deployment/ and video context [video 96:01](https://www.youtube.com/watch?v=MTHGoGUFpvE&t=5761s)
 
 ```bash
-kubectl set image deployment/web nginx=nginx:1.27          # container name = image
+kubectl set image deployment/web <container-name>=<image>   # here the container is named nginx
 kubectl annotate deployment/web kubernetes.io/change-cause="bump to 1.27"   # shows in history
 kubectl rollout status deployment/web
 kubectl rollout history deployment/web
@@ -377,6 +377,7 @@ flowchart LR
 - `--record` is deprecated; use the annotation.
 
 ## DaemonSet
+<!-- gap -->
 Docs: https://kubernetes.io/docs/concepts/workloads/controllers/daemonset/
 
 Full manifest: [`daemonset.yaml`](../examples/02-workloads/daemonset.yaml).
@@ -394,6 +395,7 @@ kubectl get pods -l name=node-agent -o wide   # one per node
 - No `replicas` field. Update strategy is `RollingUpdate` (default) or `OnDelete`.
 
 ## StatefulSet
+<!-- gap -->
 Docs: https://kubernetes.io/docs/concepts/workloads/controllers/statefulset/
 
 ```yaml
@@ -447,6 +449,7 @@ spec:
 - Storage is covered in the storage note; a default StorageClass is needed for the claim to bind (kind ships `standard`).
 
 ## Jobs and CronJobs
+<!-- gap -->
 Docs: https://kubernetes.io/docs/concepts/workloads/controllers/job/ and https://kubernetes.io/docs/concepts/workloads/controllers/cron-jobs/
 
 Full manifest: [`cronjob.yaml`](../examples/02-workloads/cronjob.yaml).
@@ -476,6 +479,7 @@ spec:
 - `startingDeadlineSeconds` bounds how late a missed run may still start. `successfulJobsHistoryLimit`/`failedJobsHistoryLimit` control how many finished Jobs are kept.
 
 ## Horizontal Pod Autoscaler
+<!-- gap -->
 Docs: https://kubernetes.io/docs/tasks/run-application/horizontal-pod-autoscale/
 
 Full manifest: [`hpa.yaml`](../examples/02-workloads/hpa.yaml).
@@ -490,9 +494,10 @@ kubectl describe hpa web
 - Needs metrics-server (a `metrics.k8s.io` provider) installed; on a plain kind cluster `kubectl top` returns `Metrics API not available` until you add it.
 - For CPU/memory utilisation targets the pod must declare resource requests, or the HPA cannot compute a percentage.
 - `behavior.scaleDown.stabilizationWindowSeconds` (default 300) prevents flapping.
-- `kubectl autoscale --cpu-percent` still works but is deprecated on this cluster; `--cpu=50%` is the replacement.
+- The [kubectl autoscale reference](https://kubernetes.io/docs/reference/kubectl/generated/kubectl_autoscale/) lists `--cpu` (a percentage means average utilisation, a quantity such as `500m` means average value) and no `--cpu-percent`; older material uses `--cpu-percent`, so write `--cpu=50%`.
 
 ## ResourceQuota and LimitRange
+<!-- gap -->
 Docs: https://kubernetes.io/docs/concepts/policy/resource-quotas/ and https://kubernetes.io/docs/concepts/policy/limit-range/
 
 Full manifest: [`quota-limitrange.yaml`](../examples/02-workloads/quota-limitrange.yaml). The video introduces the quota in [Namespaces](#namespaces) and [Requests and limits](#requests-and-limits).
@@ -527,6 +532,7 @@ spec:
 - A Deployment that violates a quota is still created; its ReplicaSet just cannot create pods. Check `kubectl describe rs`.
 
 ## nodeSelector, node affinity and nodeName
+<!-- gap -->
 Docs: https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/
 
 Full manifest: [`taint-toleration.yaml`](../examples/02-workloads/taint-toleration.yaml).
@@ -569,6 +575,7 @@ spec:
 - `nodeName` skips scheduling (and so ignores taints and resource fit). Useful to know; rarely the right tool.
 
 ## Taints and tolerations
+<!-- gap -->
 Docs: https://kubernetes.io/docs/concepts/scheduling-eviction/taint-and-toleration/
 
 Full manifest: [`taint-toleration.yaml`](../examples/02-workloads/taint-toleration.yaml).
@@ -591,7 +598,178 @@ tolerations:
 - A toleration only permits; it does not attract. To dedicate a node, taint it and also use a nodeSelector/affinity on the pods.
 - The control-plane node carries `node-role.kubernetes.io/control-plane:NoSchedule` by default; that is why ordinary pods land on workers only.
 
+## PriorityClass and preemption
+<!-- gap -->
+Docs: https://kubernetes.io/docs/concepts/scheduling-eviction/pod-priority-preemption/
+
+Full manifest: [`priorityclass.yaml`](../examples/02-workloads/priorityclass.yaml).
+
+```yaml
+apiVersion: scheduling.k8s.io/v1
+kind: PriorityClass          # cluster-scoped
+metadata:
+  name: high-priority
+value: 1000000               # any 32-bit integer <= 1 billion
+globalDefault: false         # at most one class may be true; used by Pods with no priorityClassName
+preemptionPolicy: Never      # optional; default PreemptLowerPriority
+description: "Use for important Pods only."
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: priority-demo
+spec:
+  priorityClassName: high-priority   # the class must exist, or the Pod is rejected
+  containers:
+    - name: nginx
+      image: nginx:1.27
+```
+
+```bash
+kubectl get priorityclass
+kubectl get pod priority-demo -o jsonpath='{.spec.priority} {.spec.priorityClassName} {.spec.preemptionPolicy}{"\n"}'
+```
+
+- If a pending Pod fits on no node, the scheduler looks for a node where evicting one or more lower-priority Pods would let it fit, evicts them (they get their graceful termination period), and records the node in the pending Pod's `status.nominatedNodeName`. The Pod is not guaranteed to land there.
+- `preemptionPolicy: Never` queues the Pod ahead of lower-priority Pods but it cannot preempt anyone (it can still be preempted by higher-priority Pods).
+- Built-in classes: `system-cluster-critical` (2000000000) and `system-node-critical` (2000001000). User class names cannot start with `system-`.
+- PodDisruptionBudgets are honoured only best-effort during preemption; there is no cross-node preemption.
+- Checked on kind v1.37: a Pod with `priorityClassName: high-priority` got `spec.priority` 1000000 and policy `PreemptLowerPriority`. Preemption itself was not triggered live.
+
+## Inter-pod affinity and anti-affinity
+<!-- gap -->
+Docs: https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/#inter-pod-affinity-and-anti-affinity
+
+Full manifest: [`pod-anti-affinity.yaml`](../examples/02-workloads/pod-anti-affinity.yaml).
+
+```yaml
+spec:
+  affinity:
+    podAntiAffinity:                    # keep away from Pods matching the selector
+      requiredDuringSchedulingIgnoredDuringExecution:
+        - labelSelector:
+            matchExpressions:
+              - key: app
+                operator: In
+                values: ["spread-web"]
+          topologyKey: kubernetes.io/hostname   # "same domain" = same node
+    podAffinity:                        # co-locate with Pods matching the selector
+      preferredDuringSchedulingIgnoredDuringExecution:
+        - weight: 100
+          podAffinityTerm:              # soft rules wrap the term and add a weight
+            labelSelector:
+              matchExpressions:
+                - key: security
+                  operator: In
+                  values: ["S1"]
+            topologyKey: topology.kubernetes.io/zone
+```
+
+- Node affinity looks at node labels; this looks at labels of Pods already running in a topology domain. `topologyKey` is the node-label key that defines the domain (`kubernetes.io/hostname` = per node, `topology.kubernetes.io/zone` = per zone).
+- Operators: `In`, `NotIn`, `Exists`, `DoesNotExist` (`Gt`/`Lt` are node-affinity only).
+- The selector matches Pods in the rule's own namespace unless `namespaces` or `namespaceSelector` is set.
+- A required anti-affinity rule is limited to `topologyKey: kubernetes.io/hostname` by the `LimitPodHardAntiAffinityTopology` admission controller. An empty `topologyKey` is not allowed.
+- Docs warn that these rules are costly in large clusters (not recommended beyond several hundred nodes), and that every node must carry the `topologyKey` label.
+- Checked on kind v1.37 (2 workers): the 2-replica Deployment with required hostname anti-affinity put one Pod on each worker; the `with-pod-affinity` Pod, which requires co-location with `app=spread-web`, was scheduled and Running.
+
+## Topology spread constraints
+<!-- gap -->
+Docs: https://kubernetes.io/docs/concepts/scheduling-eviction/topology-spread-constraints/
+
+Full manifest: [`topology-spread.yaml`](../examples/02-workloads/topology-spread.yaml).
+
+```yaml
+spec:
+  topologySpreadConstraints:
+    - maxSkew: 1                           # max allowed difference between domains
+      topologyKey: kubernetes.io/hostname  # a domain = one distinct value of this node label
+      whenUnsatisfiable: DoNotSchedule     # default; ScheduleAnyway only prefers a balanced node
+      nodeTaintsPolicy: Honor              # default (null) is Ignore
+      labelSelector:
+        matchLabels:
+          app: spread-demo                 # which Pods are counted
+```
+
+- With `DoNotSchedule`, `maxSkew` is the maximum permitted difference between the matching-Pod count in the target domain and the global minimum. With `ScheduleAnyway` the scheduler just prefers nodes that reduce skew.
+- Optional `minDomains` (only with `DoNotSchedule`): below that many eligible domains the global minimum is treated as 0.
+- One constraint per `topologyKey` and `whenUnsatisfiable` pair.
+- `nodeTaintsPolicy` null behaves as `Ignore`: tainted nodes still count as domains. Checked on kind v1.37 (2 workers plus a tainted control plane): with the default, a 4-replica Deployment left 2 Pods `Pending` (the empty control-plane domain kept the global minimum at 0); with `nodeTaintsPolicy: Honor` the 4 Pods ran 2 per worker.
+
+## Init containers
+<!-- gap -->
+Docs: https://kubernetes.io/docs/concepts/workloads/pods/init-containers/
+
+Full manifest: [`init-container.yaml`](../examples/02-workloads/init-container.yaml).
+
+```yaml
+spec:
+  initContainers:               # list, run in order
+    - name: init-wait
+      image: busybox:1.28
+      command: ['sh', '-c', 'echo preparing && sleep 5']
+    - name: init-file
+      image: busybox:1.28
+      command: ['sh', '-c', 'echo ready > /work/ready.txt']
+      volumeMounts: [{name: work, mountPath: /work}]
+  containers:
+    - name: app
+      image: busybox:1.28
+      command: ['sh', '-c', 'cat /work/ready.txt && sleep 3600']
+      volumeMounts: [{name: work, mountPath: /work}]
+  volumes:
+    - name: work
+      emptyDir: {}
+```
+
+```bash
+kubectl get pod init-demo                       # STATUS Init:0/2 while init containers run (seen on kind), then Running
+kubectl logs init-demo -c init-file             # logs of one init container
+kubectl get pod init-demo -o jsonpath='{.status.initContainerStatuses[*].state}'
+```
+
+- Each init container runs to completion, one after another, before the app containers start. A failing one is restarted until it succeeds, unless the Pod's `restartPolicy` is `Never`, in which case the Pod fails.
+- Use them for setup that must finish first: waiting for a Service (`until nslookup ...`), preparing a shared volume.
+- Regular init containers do not support `lifecycle`, `livenessProbe`, `readinessProbe` or `startupProbe`. Resources, volumes and security settings work as in app containers.
+- Status is in `.status.initContainerStatuses`. Checked on kind v1.37: both init containers ended `Completed` (exit 0) and the app printed `ready`.
+
+## Native sidecar containers
+<!-- gap -->
+Docs: https://kubernetes.io/docs/concepts/workloads/pods/sidecar-containers/
+
+Full manifest: [`sidecar.yaml`](../examples/02-workloads/sidecar.yaml).
+
+```yaml
+spec:
+  containers:
+    - name: myapp
+      image: alpine:latest
+      command: ['sh', '-c', 'while true; do echo "logging" >> /opt/logs.txt; sleep 1; done']
+      volumeMounts: [{name: data, mountPath: /opt}]
+  initContainers:
+    - name: logshipper
+      image: alpine:latest
+      restartPolicy: Always       # this line turns an init container into a sidecar
+      command: ['sh', '-c', 'tail -F /opt/logs.txt']
+      volumeMounts: [{name: data, mountPath: /opt}]
+  volumes:
+    - name: data
+      emptyDir: {}
+```
+
+```bash
+kubectl get pods -l app=sidecar-demo           # READY 2/2: the sidecar counts as a container
+kubectl logs deploy/sidecar-demo -c logshipper
+```
+
+- A sidecar is declared under `initContainers` with `restartPolicy: Always`. It starts in order like an init container, but the next init container (and then the app containers) start once it has started, and it keeps running for the life of the Pod.
+- On termination the kubelet waits until the main containers have stopped, then shuts sidecars down in reverse order of the spec.
+- Sidecars support probes; a `readinessProbe` on one feeds the Pod's Ready state.
+- In a Job, a sidecar does not stop the Job from completing once the main container finishes.
+- Stable since v1.33 (first available v1.28).
+- Checked on kind v1.37: Pod `2/2 Running`, `initContainers[0].restartPolicy` read back as `Always`, and the sidecar's logs showed `logging`.
+
 ## Static pods and the scheduler
+<!-- gap -->
 Docs: https://kubernetes.io/docs/tasks/configure-pod-container/static-pod/
 
 ```bash
@@ -608,7 +786,7 @@ kubectl get pods -n kube-system                    # mirror pods: name ends with
 
 ## Gotchas
 
-Sources: the sections above; reference https://kubernetes.io/docs/concepts/workloads/.
+Sources: the sections above, each gotcha from the page that section cites: https://kubernetes.io/docs/concepts/configuration/configmap/ , https://kubernetes.io/docs/concepts/configuration/secret/ , https://kubernetes.io/docs/concepts/workloads/controllers/deployment/ , https://kubernetes.io/docs/concepts/policy/resource-quotas/ , https://kubernetes.io/docs/concepts/workloads/controllers/job/ , https://kubernetes.io/docs/tasks/run-application/horizontal-pod-autoscale/ , https://kubernetes.io/docs/concepts/scheduling-eviction/pod-priority-preemption/ , https://kubernetes.io/docs/concepts/scheduling-eviction/topology-spread-constraints/ , https://kubernetes.io/docs/concepts/workloads/pods/init-containers/ , https://kubernetes.io/docs/concepts/workloads/pods/sidecar-containers/ .
 
 - `kind` and `apiVersion` are case sensitive and must be a real pair; `kubectl api-resources` tells you the right one.
 - `kubectl get pods` only shows the current namespace; a pod "missing" is usually in another namespace (`-A` to check).
@@ -618,7 +796,7 @@ Sources: the sections above; reference https://kubernetes.io/docs/concepts/workl
 - `mountPath` over an existing directory hides its contents; use `subPath` to add one file. A `subPath` mount does not receive ConfigMap updates.
 - ConfigMap env vars are fixed at container start; restart the pod to pick up changes.
 - ConfigMap key names are case-sensitive and the volume field is `configMap` (capital M); ConfigMaps and Secrets must be in the pod's namespace.
-- Secrets are base64, not encrypted by default; `base64 -d` reveals them.
+- Secrets are stored unencrypted in etcd by default; base64 is only the API encoding and `base64 -d` reveals them.
 - At the CLI labels use `key=value` (no colon); changing an existing key needs `--overwrite`; `key-` removes.
 - Deployment selector and template labels must match. Stripping a pod's label makes the Deployment spawn a replacement.
 - `kubectl rollout undo` reverts the template to an earlier revision as a new revision; the `change-cause` annotation carries forward until you change it.
@@ -627,3 +805,6 @@ Sources: the sections above; reference https://kubernetes.io/docs/concepts/workl
 - HPA needs metrics-server and pod resource requests; without them it shows `<unknown>`.
 - Job pods need `restartPolicy: Never` or `OnFailure`, never `Always`.
 - Deleting a mirror (static) pod with kubectl does not remove it; delete the manifest file on the node.
+- A Pod naming a `priorityClassName` that does not exist is rejected; `preemptionPolicy: Never` queues first but never evicts.
+- Topology spread counts tainted nodes as domains unless `nodeTaintsPolicy: Honor`, so Pods can stay `Pending` on a cluster with a tainted control plane.
+- A sidecar is an init container with `restartPolicy: Always`; a plain init container must finish before the app starts.

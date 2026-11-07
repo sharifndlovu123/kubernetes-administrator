@@ -2,6 +2,8 @@
 
 CKA domain: implement StorageClasses and dynamic volume provisioning; configure volume types, access modes and reclaim policies; manage PersistentVolumes and PersistentVolumeClaims. Target: Kubernetes v1.37.
 
+Scope: VolumeSnapshots are dropped as out of scope for the CKA v1.37 curriculum (Storage lists classes/dynamic provisioning, volume types/access modes/reclaim policies, PV/PVC); PVC expansion is kept because `allowVolumeExpansion` is a StorageClass field.
+
 Video: Alta3 Research, "Kubernetes Zero to Hero" (sections below cite timestamps). The Storage chapter (6754s) opens with the tail of the Deployments rollback demo; storage proper begins at 116:24 (6984s), and every video link below is at or after that. Sections without a timestamp come from kubernetes.io/docs. Runnable manifests live in [`examples/04-storage/`](../examples/04-storage/). Cluster for experiments: `kind create cluster --name cka-study --config examples/kind-config.yaml` (kind ships a default StorageClass `standard`).
 
 ## The storage chain: class, PV, PVC, volume, mount
@@ -105,6 +107,31 @@ kubectl patch storageclass local-retain -p '{"metadata": {"annotations":{"storag
 - Default class: annotation `storageclass.kubernetes.io/is-default-class: "true"`. A PVC with no `storageClassName` gets it (needs the `DefaultStorageClass` admission controller). If several are marked default, the newest wins.
 - `storageClassName: ""` on a PVC opts out of dynamic provisioning (static binding only).
 
+## Expanding a PVC (allowVolumeExpansion)
+<!-- gap -->
+docs: https://kubernetes.io/docs/concepts/storage/persistent-volumes/#expanding-persistent-volumes-claims , https://kubernetes.io/docs/concepts/storage/storage-classes/#allow-volume-expansion
+
+Full manifest: [`storageclass-expansion.yaml`](../examples/04-storage/storageclass-expansion.yaml).
+
+```yaml
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata: {name: local-expandable}
+provisioner: rancher.io/local-path
+allowVolumeExpansion: true          # the field that permits growing claims of this class
+```
+
+```bash
+kubectl patch pvc expand-pvc -p '{"spec":{"resources":{"requests":{"storage":"2Gi"}}}}'   # or kubectl edit pvc (not run live)
+kubectl get pvc expand-pvc          # CAPACITY follows once the volume is resized
+```
+
+- A PVC can be expanded only if its StorageClass has `allowVolumeExpansion: true`. Expansion is by editing the PVC's requested size; no new PV is created, the existing volume is resized.
+- Grow only: a smaller request is not supported. The driver must support it (CSI expansion is stable since v1.24).
+- A file system is resized only when a Pod uses the claim in `ReadWrite` mode, either at Pod start or online if the file system supports it; only XFS, Ext3 and Ext4 can be resized.
+- Do not edit the PV's capacity to match: docs warn that then no resize happens.
+- Checked on kind v1.37: the StorageClass and PVC passed `--dry-run=server`; the expansion itself was not run live (the claim was unbound under `WaitForFirstConsumer`, and a patch of an unbound claim's size was rejected as immutable, which is consistent with the API only allowing the request change on bound claims).
+
 ## Reclaim policy and PV phases
 <!-- gap -->
 docs: https://kubernetes.io/docs/concepts/storage/persistent-volumes/#reclaiming , https://kubernetes.io/docs/tasks/administer-cluster/change-pv-reclaim-policy/
@@ -163,7 +190,7 @@ kubectl explain pod.spec.volumes.emptyDir         # medium, sizeLimit
 
 ## Gotchas
 
-Sources: the sections above; reference https://kubernetes.io/docs/concepts/storage/.
+Sources: the sections above, each gotcha from the page that section cites: https://kubernetes.io/docs/concepts/storage/persistent-volumes/ (binding, `Released`, reclaim), https://kubernetes.io/docs/concepts/storage/storage-classes/ (`WaitForFirstConsumer`, `Delete`), https://kubernetes.io/docs/concepts/storage/volumes/#hostpath .
 
 - PVC stuck `Pending` with `WaitForFirstConsumer` is normal until a Pod uses it; otherwise check class name, access mode and requested size against available PVs, and `kubectl describe pvc` events.
 - A PVC requesting more than any PV offers never binds; a bigger PV may bind (more than requested).
@@ -171,4 +198,3 @@ Sources: the sections above; reference https://kubernetes.io/docs/concepts/stora
 - `Retain` PVs go `Released`, not `Available`; they will not bind a new claim until an admin reclaims them.
 - `hostPath` PV data stays on one node; Pods scheduled elsewhere will not see it.
 - Deleting a PVC under a `Delete` class destroys the data.
-- Dropped as out of scope for the CKA v1.37 curriculum (Storage lists only classes/dynamic provisioning, volume types/access modes/reclaim policies, PV/PVC): VolumeSnapshots and PVC expansion.

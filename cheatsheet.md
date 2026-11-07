@@ -15,7 +15,7 @@ kubectl config set-context --current --namespace=my-namespace   # change default
 ```
 
 ## Imperative kubectl
-→ [notes/02-workloads-scheduling.md#kubectl-run-port-forward-exec-and-cp](notes/02-workloads-scheduling.md#kubectl-run-port-forward-exec-and-cp), [#manifest-anatomy](notes/02-workloads-scheduling.md#manifest-anatomy), [#deployments-and-replicasets](notes/02-workloads-scheduling.md#deployments-and-replicasets)
+→ [notes/02-workloads-scheduling.md#kubectl-run-port-forward-exec-and-cp](notes/02-workloads-scheduling.md#kubectl-run-port-forward-exec-and-cp), [#manifest-anatomy](notes/02-workloads-scheduling.md#manifest-anatomy), [#deployments-and-replicasets](notes/02-workloads-scheduling.md#deployments-and-replicasets); the `--port`, `expose` and `scale` lines below: [notes/03-services-networking.md#service-basics-a-stable-ip-in-front-of-changing-pods](notes/03-services-networking.md#service-basics-a-stable-ip-in-front-of-changing-pods)
 
 ```bash
 kubectl run nginx --image=nginx --dry-run=client -o yaml      # generate a Pod manifest
@@ -33,7 +33,7 @@ kubectl explain deployment.spec.strategy
 → [notes/03-services-networking.md#service-basics-a-stable-ip-in-front-of-changing-pods](notes/03-services-networking.md#service-basics-a-stable-ip-in-front-of-changing-pods), [#ingress-and-ingress-controllers](notes/03-services-networking.md#ingress-and-ingress-controllers)
 
 ```bash
-kubectl create ingress demo --class=nginx --rule="demo.example.com/*=demo-deploy:80"
+kubectl create ingress demo-ingress --class=nginx --rule="demo.example.com/*=demo-deploy:80"
 ```
 
 → [notes/02-workloads-scheduling.md#configmaps](notes/02-workloads-scheduling.md#configmaps), [#secrets](notes/02-workloads-scheduling.md#secrets), [#labels-and-selectors](notes/02-workloads-scheduling.md#labels-and-selectors)
@@ -70,6 +70,32 @@ kubectl rollout restart deployment/web
 kubectl taint nodes cka-study-worker dedicated=batch:NoSchedule     # add; trailing - removes
 kubectl label nodes cka-study-worker disktype=ssd
 kubectl get pod affinity-demo -o wide
+```
+
+→ [notes/02-workloads-scheduling.md#priorityclass-and-preemption](notes/02-workloads-scheduling.md#priorityclass-and-preemption), [#inter-pod-affinity-and-anti-affinity](notes/02-workloads-scheduling.md#inter-pod-affinity-and-anti-affinity), [#topology-spread-constraints](notes/02-workloads-scheduling.md#topology-spread-constraints), [#init-containers](notes/02-workloads-scheduling.md#init-containers), [#native-sidecar-containers](notes/02-workloads-scheduling.md#native-sidecar-containers). Each snippet passed `--dry-run=server` on kind; full manifests in [examples/02-workloads/](examples/02-workloads/).
+
+```yaml
+# PriorityClass (cluster-scoped), then spec.priorityClassName: high-priority in the Pod
+apiVersion: scheduling.k8s.io/v1
+kind: PriorityClass
+metadata: {name: high-priority}
+value: 1000000                      # preemptionPolicy: Never = non-preempting
+---
+# inter-pod anti-affinity: one replica per node
+affinity:
+  podAntiAffinity:
+    requiredDuringSchedulingIgnoredDuringExecution:
+      - labelSelector: {matchExpressions: [{key: app, operator: In, values: ["spread-web"]}]}
+        topologyKey: kubernetes.io/hostname
+---
+# topology spread across nodes
+topologySpreadConstraints:
+  - {maxSkew: 1, topologyKey: kubernetes.io/hostname, whenUnsatisfiable: DoNotSchedule, labelSelector: {matchLabels: {app: spread-demo}}}
+---
+# init container runs to completion first; restartPolicy: Always makes it a native sidecar
+initContainers:
+  - {name: init-wait, image: "busybox:1.28", command: ["sh", "-c", "sleep 5"]}
+  - {name: logshipper, image: alpine, restartPolicy: Always, command: ["sh", "-c", "tail -F /opt/logs.txt"]}
 ```
 
 ## Output formatting (jsonpath, custom-columns, sort)
@@ -124,7 +150,7 @@ etcdutl --data-dir <data-dir-location> snapshot restore snapshot.db     # not ru
 → [notes/01-cluster-architecture.md#create-a-cluster-with-kubeadm](notes/01-cluster-architecture.md#create-a-cluster-with-kubeadm), [#upgrade-a-kubeadm-cluster](notes/01-cluster-architecture.md#upgrade-a-kubeadm-cluster), [#certificate-management-kubeadm-certs](notes/01-cluster-architecture.md#certificate-management-kubeadm-certs). All *(not run live)* except the read-only ones.
 
 ```bash
-sudo kubeadm init --control-plane-endpoint=<ep> --pod-network-cidr=<cidr>
+sudo kubeadm init <args>     # args named in the note, e.g. --control-plane-endpoint=<ep> --pod-network-cidr=<cidr> (combined here; the note lists them separately)
 kubeadm token create --print-join-command
 kubeadm certs check-expiration            # read-only
 kubeadm certs renew all
@@ -142,7 +168,7 @@ sudo systemctl daemon-reload && sudo systemctl restart kubelet
 kubectl uncordon <node>
 ```
 
-Other control plane nodes: `sudo kubeadm upgrade node` instead of `apply`. Workers: upgrade kubeadm, `sudo kubeadm upgrade node`, drain from a control plane node, upgrade kubelet, restart kubelet, uncordon.
+Other control plane nodes: `sudo kubeadm upgrade node` instead of `apply`. Workers: upgrade kubeadm and kubectl, `sudo kubeadm upgrade node`, drain from a control plane node, then upgrade kubelet, restart kubelet, uncordon.
 
 ## Troubleshooting
 → [notes/05-troubleshooting.md#method-describe-events-logs-then-the-node](notes/05-troubleshooting.md#method-describe-events-logs-then-the-node), [#container-logs-default-container--c---all-containers--f](notes/05-troubleshooting.md#container-logs-default-container--c---all-containers--f), [#more-log-options---previous-selectors---tail---since](notes/05-troubleshooting.md#more-log-options---previous-selectors---tail---since)
@@ -186,6 +212,61 @@ kubectl explain pod.spec.volumes.emptyDir
 ```
 
 PV/PVC/StorageClass manifests: [examples/04-storage/](examples/04-storage/).
+
+## Networking, storage and packaging
+→ [notes/03-services-networking.md#networkpolicy-anatomy](notes/03-services-networking.md#networkpolicy-anatomy), [#gateway-api](notes/03-services-networking.md#gateway-api)
+
+```yaml
+# NetworkPolicy skeleton (from the note)
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata: {name: allow-frontend-from-myproject, namespace: default}
+spec:
+  podSelector: {matchLabels: {role: db}}      # WHO is protected
+  policyTypes: [Ingress, Egress]
+  ingress:
+    - from:
+        - namespaceSelector: {matchLabels: {project: myproject}}   # same item, two selectors = AND
+          podSelector: {matchLabels: {role: frontend}}
+        - ipBlock: {cidr: 172.17.0.0/16, except: [172.17.1.0/24]}  # a separate "-" item = OR
+      ports: [{protocol: TCP, port: 6379}]
+```
+
+AND vs OR: one list item with two selectors is AND; separate `-` items are OR. Once a Pod is selected for a direction, anything not allowed is denied.
+
+```yaml
+# Gateway API: HTTPRoute attaches to a Gateway through parentRefs (needs the Gateway API CRDs and a controller)
+kind: HTTPRoute
+spec:
+  parentRefs: [{name: example-gateway}]
+  rules:
+    - matches: [{path: {type: PathPrefix, value: /login}}]
+      backendRefs: [{name: demo-deploy, port: 80}]
+```
+
+→ [notes/04-storage.md#pv-pvc-and-pod-manifest-static-binding](notes/04-storage.md#pv-pvc-and-pod-manifest-static-binding), [#expanding-a-pvc-allowvolumeexpansion](notes/04-storage.md#expanding-a-pvc-allowvolumeexpansion)
+
+```yaml
+kind: PersistentVolumeClaim
+metadata: {name: nginx-pvc}
+spec:
+  storageClassName: manual         # same class as the PV
+  accessModes: [ReadWriteOnce]
+  resources: {requests: {storage: 3Gi}}
+```
+
+A PVC can be grown only if its StorageClass sets `allowVolumeExpansion: true`.
+
+→ [notes/01-cluster-architecture.md#helm-and-kustomize](notes/01-cluster-architecture.md#helm-and-kustomize). Helm commands come from helm.sh docs; no Helm binary was run.
+
+```bash
+kubectl kustomize examples/01-cluster/kustomize/overlays/dev    # render only
+kubectl apply -k examples/01-cluster/kustomize/overlays/dev
+helm install -f myvalues.yaml myredis ./redis
+helm upgrade [RELEASE] [CHART] [flags]
+helm rollback <RELEASE> [REVISION]
+helm uninstall RELEASE_NAME [...] [flags]
+```
 
 ## Docs navigation (exam)
 - Allowed: kubernetes.io/docs, kubernetes.io/blog, helm.sh/docs, gateway-api.sigs.k8s.io; use the kubernetes.io search box ([exam overview](notes/00-exam-overview.md#exam-environment-and-allowed-documentation)).

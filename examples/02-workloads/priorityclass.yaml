@@ -1,0 +1,29 @@
+# PriorityClass (cluster-scoped) and a Pod that uses it.
+# Source: https://kubernetes.io/docs/concepts/scheduling-eviction/pod-priority-preemption/
+# Note: --dry-run=server of the Pod alone fails until the PriorityClasses exist (dry run does not persist them); applied for real it works.
+apiVersion: scheduling.k8s.io/v1
+kind: PriorityClass
+metadata:
+  name: high-priority
+value: 1000000
+globalDefault: false
+description: "Use for important Pods only."
+---
+apiVersion: scheduling.k8s.io/v1
+kind: PriorityClass
+metadata:
+  name: high-priority-nonpreempting
+value: 1000000
+preemptionPolicy: Never
+globalDefault: false
+description: "Queued ahead of lower-priority Pods, but never preempts them."
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: priority-demo
+spec:
+  priorityClassName: high-priority
+  containers:
+    - name: nginx
+      image: nginx:1.27

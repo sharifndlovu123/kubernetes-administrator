@@ -2,7 +2,9 @@
 
 CKA domain (largest): troubleshoot clusters and nodes; troubleshoot cluster components; monitor cluster and application resource usage; manage and evaluate container output streams; troubleshoot services and networking. Target: Kubernetes v1.37.
 
-Video: Alta3 Research, "Kubernetes Zero to Hero" covers only two pieces of this domain: resource monitoring (`kubectl top`) and logs. Everything else here is `<!-- gap -->` material from kubernetes.io/docs, each section citing its page. Runnable broken-on-purpose manifests live in [`examples/05-troubleshooting/`](../examples/05-troubleshooting/); all pass `kubectl apply --dry-run=server` on the kind cluster `cka-study`.
+Video: Alta3 Research, "Kubernetes Zero to Hero" covers only two pieces of this domain: resource monitoring (`kubectl top`) and logs. Everything else here is `<!-- gap -->` material from kubernetes.io/docs, each section citing its page. Curriculum check (CNCF CKA v1.37, Troubleshooting 30%): troubleshoot clusters and nodes; troubleshoot cluster components; monitor cluster and application resource usage; manage and evaluate container output streams; troubleshoot services and networking. Nothing was dropped as out of scope; the per-Pod failure states (ImagePullBackOff and so on) are kept because they are the day-to-day method for those bullets, though they are not named individually in the curriculum.
+
+Runnable broken-on-purpose manifests live in [`examples/05-troubleshooting/`](../examples/05-troubleshooting/); all pass `kubectl apply --dry-run=server` on the kind cluster `cka-study`.
 
 Outputs marked "example" were captured on that kind cluster (v1.37.0, 1 control plane + 2 workers, namespace `ts-demo`, deleted afterwards); names, IPs and ages differ on yours. Anything destructive (stopping the kubelet, editing static pod manifests, certificate surgery) is documented from kubernetes.io only and marked **not run live**.
 
@@ -423,7 +425,7 @@ kubectl delete pod node-debugger-mynode-<suffix>       # clean up
 
 ## Gotchas
 
-Sources: the sections above; reference https://kubernetes.io/docs/tasks/debug/.
+Sources: the sections above, each gotcha from the page that section cites: https://kubernetes.io/docs/reference/kubectl/generated/kubectl_logs/ (logs flags), https://kubernetes.io/docs/tasks/debug/debug-cluster/resource-metrics-pipeline/ (`kubectl top`), https://kubernetes.io/docs/tasks/debug/debug-application/debug-service/ (Services, endpoints), https://kubernetes.io/docs/tasks/configure-pod-container/static-pod/ (static Pods), https://kubernetes.io/docs/concepts/services-networking/network-policies/ (NetworkPolicy).
 
 - `kubectl top` needs metrics-server; "Metrics API not available" means it is missing or its APIService is not `Available`. Numbers lag for a few minutes after a Pod is created.
 - Plain `kubectl logs` on a multi-container Pod silently picks the first container; use `-c` or `--all-containers`.
@@ -439,4 +441,3 @@ Sources: the sections above; reference https://kubernetes.io/docs/tasks/debug/.
 - You cannot delete a static Pod with `kubectl`; remove or fix the manifest on the node, and keep non-manifest files out of `/etc/kubernetes/manifests`.
 - The kubelet and containerd log to journald, so `kubectl logs` cannot show them; `kubectl debug node` will not work if the node is down.
 - Do not grant `nodes/proxy` casually, and `pods/ephemeralcontainers` is a separate RBAC permission.
-- Curriculum check (CNCF CKA v1.37, Troubleshooting 30%): troubleshoot clusters and nodes; troubleshoot cluster components; monitor cluster and application resource usage; manage and evaluate container output streams; troubleshoot services and networking. Nothing above was dropped as out of scope; the per-Pod failure states (ImagePullBackOff and so on) are kept because they are the day-to-day method for those bullets, though they are not named individually in the curriculum.

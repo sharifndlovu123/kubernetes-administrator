@@ -226,6 +226,7 @@ spec:
 - The video's chapter ends mid-demo at the promo; the live NodePort walkthrough is covered by the section above.
 
 ## Ingress and Ingress controllers
+<!-- gap -->
 Source: https://kubernetes.io/docs/concepts/services-networking/ingress/
 
 ```yaml
@@ -251,7 +252,7 @@ spec:
 
 ```bash
 kubectl get ingressclass
-kubectl create ingress demo --class=nginx --rule="demo.example.com/*=demo-deploy:80"
+kubectl create ingress demo-ingress --class=nginx --rule="demo.example.com/*=demo-deploy:80"   # flags: https://kubernetes.io/docs/reference/kubectl/generated/kubectl_create/kubectl_create_ingress/
 kubectl describe ingress demo-ingress
 ```
 
@@ -261,6 +262,7 @@ kubectl describe ingress demo-ingress
 - The backend is a Service, so selectors and Ready endpoints apply as always. Example: `examples/03-networking/ingress.yaml` (accepted by the API server on kind, but nothing serves it without a controller).
 
 ## Gateway API
+<!-- gap -->
 Source: https://kubernetes.io/docs/concepts/services-networking/gateway/
 
 ```mermaid
@@ -306,6 +308,7 @@ spec:
 - `examples/03-networking/gateway-api.yaml` cannot be applied on the stock kind cluster (no CRDs: "no matches for kind GatewayClass"); `controllerName` there is a placeholder.
 
 ## CoreDNS and Service DNS names
+<!-- gap -->
 Source: https://kubernetes.io/docs/concepts/services-networking/dns-pod-service/
 
 ```bash
@@ -328,6 +331,7 @@ kubectl -n kube-system get cm coredns -o yaml             # the Corefile
 - Troubleshooting order: does `nslookup <svc>` work, does the Service have endpoints, are the CoreDNS Pods Running, did a NetworkPolicy block port 53.
 
 ## CNI: what it is and where it lives
+<!-- gap -->
 Source: https://kubernetes.io/docs/concepts/extend-kubernetes/compute-storage-net/network-plugins/
 
 ```bash
@@ -343,6 +347,7 @@ kubectl -n kube-system get ds     # the CNI's agent usually runs as a DaemonSet 
 - If Pods are stuck `ContainerCreating` with a network error in `describe`, suspect the CNI (missing config/binary, agent not running).
 
 ## EndpointSlices
+<!-- gap -->
 Source: https://kubernetes.io/docs/concepts/services-networking/endpoint-slices/
 
 ```bash
@@ -358,6 +363,7 @@ Output seen on kind: `demo-deploy-hwnlh   IPv4   80   10.244.1.6,10.244.2.9,10.2
 - A Service without a selector gets no automatic slice: create the EndpointSlice yourself to point at external IPs.
 
 ## kube-proxy modes
+<!-- gap -->
 Source: https://kubernetes.io/docs/reference/networking/virtual-ips/
 
 ```bash
@@ -373,7 +379,7 @@ kubectl -n kube-system logs ds/kube-proxy | head                     # first lin
 
 ## Gotchas
 
-Sources: the sections above; reference https://kubernetes.io/docs/concepts/services-networking/.
+Sources: the sections above, each gotcha from the page that section cites: https://kubernetes.io/docs/concepts/services-networking/network-policies/ (NetworkPolicy), https://kubernetes.io/docs/concepts/services-networking/service/ (selectors, `port`/`targetPort`, `LoadBalancer`), https://kubernetes.io/docs/concepts/services-networking/ingress/ (Ingress without a controller), https://kubernetes.io/docs/concepts/services-networking/dns-pod-service/ (DNS names).
 
 - NetworkPolicy needs a CNI that enforces it; otherwise objects apply fine and do nothing. Verified on this kind cluster (kindnetd `v20260820-69b56db7`, v1.37): ingress default-deny does take effect, an unlabelled Pod timed out while `run=client` succeeded. Egress enforcement was not tested here. Older kind/kindnet images may not enforce, so test with a deny before trusting a policy.
 - A blocked connection hangs, it does not refuse. A plain `wget`/`curl` without a timeout looks like a frozen terminal.

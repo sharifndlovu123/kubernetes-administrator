@@ -1,0 +1,27 @@
+# initContainers run one at a time, to completion, before the app containers start.
+# Source: https://kubernetes.io/docs/concepts/workloads/pods/init-containers/
+apiVersion: v1
+kind: Pod
+metadata:
+  name: init-demo
+spec:
+  initContainers:
+    - name: init-wait
+      image: busybox:1.28
+      command: ['sh', '-c', 'echo preparing && sleep 5']
+    - name: init-file
+      image: busybox:1.28
+      command: ['sh', '-c', 'echo ready > /work/ready.txt']
+      volumeMounts:
+        - name: work
+          mountPath: /work
+  containers:
+    - name: app
+      image: busybox:1.28
+      command: ['sh', '-c', 'cat /work/ready.txt && sleep 3600']
+      volumeMounts:
+        - name: work
+          mountPath: /work
+  volumes:
+    - name: work
+      emptyDir: {}

@@ -23,6 +23,7 @@ spec:
       emptyDir:
         sizeLimit: 100Mi            # medium: Memory would back it with tmpfs
     - name: hostlogs
+      # WARNING: hostPath exposes the node's filesystem (credentials, runtime socket) and differs per node; avoid outside demos (see notes/04-storage.md).
       hostPath:
         path: /var/log
         type: Directory

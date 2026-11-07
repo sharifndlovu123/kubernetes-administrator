@@ -6,6 +6,8 @@ Video: Alta3 Research, "Kubernetes Zero to Hero". The Architecture chapter (102s
 
 Curriculum mapping for sections that are not a bullet by name: etcd snapshot/restore and `kubeadm certs` fall under "manage the lifecycle of clusters"; ServiceAccounts are RBAC subjects; kubeconfig/contexts are how `kubectl` reaches the cluster and are needed to test RBAC with `--as`.
 
+Dropped as out of scope for the CKA v1.37 curriculum (Cluster Architecture, Installation & Configuration): `kubeadm reset`, external CA mode and custom certificate authority setup, Windows nodes, API aggregation layer, and writing operators with kubebuilder or Operator Framework. Helm has no kubernetes.io page, so its commands are cited from helm.sh.
+
 Not run live (destructive on the shared kind cluster): `kubeadm init/join/upgrade/reset`, etcd restore, certificate renewal, draining the control plane. Those sections are copied from kubernetes.io and marked "not run live". Read-only and throwaway checks were run and are labelled "Live check".
 
 ## Cluster, nodes and pods
@@ -360,6 +362,8 @@ kubectl -n kube-system delete pod <name-of-etcd-pod>
 systemctl restart kubelet.service
 ```
 
+  The `kubectl delete pod` form only deletes the API-side mirror Pod, and the kubelet does not remove the static Pod for it (static-pod page, "Mirror Pods"). What recreates etcd is the kubelet reacting to the manifest directory, which it scans periodically for changes (https://kubernetes.io/docs/tasks/configure-pod-container/static-pod/). So after editing `etcd.yaml` treat `systemctl restart kubelet.service` as the form to rely on.
+
 - On a kubeadm cluster also set `etcd.local.dataDir` to the new directory in the `kubeadm-config` ConfigMap, otherwise the next `kubeadm upgrade` writes an etcd manifest for the old directory.
 - `etcdctl` is the network client for day-to-day operations; `etcdutl` works directly on data files (restore, defrag, status). Restore uses `etcdutl`; the `etcdctl` restore is the deprecated form.
 
@@ -616,7 +620,7 @@ kubectl get crontab
 
 ## Helm and Kustomize
 <!-- gap -->
-docs: Kustomize https://kubernetes.io/docs/tasks/manage-kubernetes-objects/kustomization/ | Helm (no kubernetes.io page; helm.sh docs): https://helm.sh/docs/intro/using_helm/ , https://helm.sh/docs/helm/helm_install/ , https://helm.sh/docs/helm/helm_upgrade/ , https://helm.sh/docs/helm/helm_uninstall/ , https://helm.sh/docs/helm/helm_show_values/ , https://helm.sh/docs/helm/helm_search_repo/
+docs: Kustomize https://kubernetes.io/docs/tasks/manage-kubernetes-objects/kustomization/ | Helm (no kubernetes.io page; helm.sh docs): https://helm.sh/docs/intro/using_helm/ , https://helm.sh/docs/helm/helm_install/ , https://helm.sh/docs/helm/helm_upgrade/ , https://helm.sh/docs/helm/helm_uninstall/ , https://helm.sh/docs/helm/helm_show_values/ , https://helm.sh/docs/helm/helm_search_repo/ , https://helm.sh/docs/helm/helm_list/ , https://helm.sh/docs/helm/helm_rollback/
 
 Kustomize is built into `kubectl`. Example: [`examples/01-cluster/kustomize/`](../examples/01-cluster/kustomize/) (a `base` and a `dev` overlay).
 
@@ -661,13 +665,13 @@ helm install ... --version <constraint> --dry-run=server
 helm list --deployed
 helm upgrade [RELEASE] [CHART] [flags]                # update an existing release
 helm upgrade -f myvalues.yaml -f override.yaml redis ./redis
-helm rollback [RELEASE] [REVISION]
+helm rollback <RELEASE> [REVISION]             # revision omitted or 0 = previous release
 helm uninstall RELEASE_NAME [...] [flags]             # remove a release
 ```
 
 ## Gotchas
 
-Sources: the sections above; reference https://kubernetes.io/docs/home/.
+Sources: the sections above, each gotcha from the page that section cites, e.g. kubeadm upgrade https://kubernetes.io/docs/tasks/administer-cluster/kubeadm/kubeadm-upgrade/ , etcd restore https://kubernetes.io/docs/tasks/administer-cluster/configure-upgrade-etcd/ , RBAC https://kubernetes.io/docs/reference/access-authn-authz/rbac/ .
 
 - `kubectl` working does not mean the cluster is healthy; read the request flow to decide which component to look at.
 - kubelet and container runtime must agree on the cgroup driver; mismatch shows up as a node that will not run Pods.
@@ -682,5 +686,3 @@ Sources: the sections above; reference https://kubernetes.io/docs/home/.
 - A ClusterRoleBinding grants its ClusterRole across every namespace; binding the same ClusterRole with a RoleBinding scopes it to that one namespace (`examples/01-cluster/rbac.yaml` has both for Secrets). Reading Secrets is sensitive: prefer `get` on named `resourceNames` over `list`/`watch`. Source: https://kubernetes.io/docs/reference/access-authn-authz/rbac/
 - `kubectl auth can-i --as=...` needs impersonation rights; ServiceAccount users are `system:serviceaccount:<ns>:<name>`.
 - Wrong `metadata.name` on a CRD (must be `<plural>.<group>`) is rejected; exactly one version has `storage: true`.
-- Helm has no kubernetes.io page; the Helm commands above are cited from helm.sh pages.
-- Dropped as out of scope for the CKA v1.37 curriculum (Cluster Architecture, Installation & Configuration): `kubeadm reset`, external CA mode and custom certificate authority setup, Windows nodes, API aggregation layer, and writing operators with kubebuilder or Operator Framework.
