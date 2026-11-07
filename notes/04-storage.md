@@ -2,7 +2,7 @@
 
 CKA domain: implement StorageClasses and dynamic volume provisioning; configure volume types, access modes and reclaim policies; manage PersistentVolumes and PersistentVolumeClaims. Target: Kubernetes v1.37.
 
-Video: Alta3 Research, "Kubernetes Zero to Hero" (sections below cite timestamps). Sections without a timestamp come from kubernetes.io/docs. Runnable manifests live in [`examples/04-storage/`](../examples/04-storage/). Cluster for experiments: `kind create cluster --name cka-study --config examples/kind-config.yaml` (kind ships a default StorageClass `standard`).
+Video: Alta3 Research, "Kubernetes Zero to Hero" (sections below cite timestamps). The Storage chapter (6754s) opens with the tail of the Deployments rollback demo; storage proper begins at 116:24 (6984s), and every video link below is at or after that. Sections without a timestamp come from kubernetes.io/docs. Runnable manifests live in [`examples/04-storage/`](../examples/04-storage/). Cluster for experiments: `kind create cluster --name cka-study --config examples/kind-config.yaml` (kind ships a default StorageClass `standard`).
 
 ## The storage chain: class, PV, PVC, volume, mount
 <!-- chapter: Storage -->
@@ -126,14 +126,14 @@ kubectl get pv                                # RECLAIM POLICY and STATUS column
 
 ## Volume types: emptyDir, hostPath, projected
 <!-- gap -->
-docs: https://kubernetes.io/docs/concepts/storage/volumes/ , https://kubernetes.io/docs/concepts/storage/projected-volumes/
+docs: https://kubernetes.io/docs/concepts/storage/volumes/#emptydir , https://kubernetes.io/docs/concepts/storage/volumes/#hostpath , https://kubernetes.io/docs/concepts/storage/projected-volumes/
 
 ```yaml
 # examples/04-storage/volume-types.yaml (volumes part)
 volumes:
   - name: scratch
     emptyDir:
-      sizeLimit: 100Mi        # add medium: Memory for tmpfs
+      sizeLimit: 100Mi        # or medium: Memory for tmpfs
   - name: hostlogs
     hostPath:
       path: /var/log
@@ -148,8 +148,16 @@ volumes:
                 fieldRef: {fieldPath: metadata.labels}
 ```
 
-- `emptyDir`: scratch space created empty when the Pod starts on a node; it lives as long as the Pod, so it survives container restarts but not Pod removal. `medium: Memory` makes it RAM-backed.
-- `hostPath`: a file or directory from the node's filesystem. `type` values include `Directory`, `DirectoryOrCreate`, `File`, `FileOrCreate`, `Socket`. It exposes the node to the Pod, so avoid it outside labs and system agents.
+```bash
+kubectl explain pod.spec.volumes.hostPath.type    # lists the type values
+kubectl explain pod.spec.volumes.emptyDir         # medium, sizeLimit
+```
+
+- `emptyDir`: created empty when the Pod is assigned to a node; all containers in the Pod can read and write it (mount paths may differ). Data survives container crashes but is deleted permanently when the Pod leaves the node. Live on kind: a file written by one container was read from the other (`examples/04-storage/emptydir-shared.yaml`).
+- `emptyDir.medium`: default is the node's medium; the only other allowed value is `Memory`, a tmpfs (RAM) whose files count against the writing container's memory limit.
+- `emptyDir.sizeLimit`: caps capacity; docs say it is allocated from node ephemeral storage for the default medium. For `Memory`, `kubectl explain` says usage is capped at the smaller of `sizeLimit` and the sum of container memory limits.
+- `hostPath`: a path on the node. `type` values (docs, matches `kubectl explain`): `""` (default, no checks), `Directory`, `DirectoryOrCreate` (creates 0755), `File`, `FileOrCreate` (creates 0644, not the parent directory), `Socket`, `CharDevice`, `BlockDevice`.
+- `hostPath` risk (docs): exposes node credentials and the runtime socket (container escape), Pods behave differently per node, and its usage is not counted as ephemeral storage. Avoid it; docs suggest a `local` PersistentVolume instead.
 - `projected`: merges `secret`, `configMap`, `downwardAPI`, `serviceAccountToken` (and `clusterTrustBundle`) sources into one directory; all sources must be in the Pod's namespace. Live: the example Pod listed `labels` and `log_level` under `/merged`.
 - `configMap` and `secret` volumes are covered in `02-workloads-scheduling.md`.
 
